@@ -1,6 +1,6 @@
 {
 	"name": "@healthycodin/kit-request-metrics",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Request metrics tracking for SvelteKit with MongoDB storage",
 	"license": "MIT",
 	"repository": {

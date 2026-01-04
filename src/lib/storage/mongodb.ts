@@ -212,7 +212,7 @@ export function createMongoStorage(
   }
 
   async function getRouteStats(params: TimeRangeParams): Promise<RouteStats[]> {
-    const { from, to, route } = params;
+    const { from, to, route, groupByMethod = false } = params;
 
     const matchStage: Document = {
       timestamp: { $gte: from, $lte: to },
@@ -222,22 +222,28 @@ export function createMongoStorage(
       matchStage["meta.route"] = route;
     }
 
-    const pipeline: Document[] = [
-      { $match: matchStage },
-      {
-        $group: {
-          _id: "$meta.route",
-          requests: { $sum: 1 },
-          avgDurationMs: { $avg: "$durationMs" },
-          errorCount: {
-            $sum: {
-              $cond: [{ $gte: ["$status", 400] }, 1, 0],
-            },
+    // Group by route only, or by route + method
+    const groupId = groupByMethod
+      ? { route: "$meta.route", method: "$meta.method" }
+      : "$meta.route";
+
+    // Project stage differs based on grouping
+    const projectStage: Document = groupByMethod
+      ? {
+          _id: 0,
+          route: { $ifNull: ["$_id.route", "unknown"] },
+          method: { $ifNull: ["$_id.method", "unknown"] },
+          requests: 1,
+          avgDurationMs: 1,
+          errorRate: {
+            $cond: [
+              { $eq: ["$requests", 0] },
+              0,
+              { $divide: ["$errorCount", "$requests"] },
+            ],
           },
-        },
-      },
-      {
-        $project: {
+        }
+      : {
           _id: 0,
           route: { $ifNull: ["$_id", "unknown"] },
           requests: 1,
@@ -249,8 +255,23 @@ export function createMongoStorage(
               { $divide: ["$errorCount", "$requests"] },
             ],
           },
+        };
+
+    const pipeline: Document[] = [
+      { $match: matchStage },
+      {
+        $group: {
+          _id: groupId,
+          requests: { $sum: 1 },
+          avgDurationMs: { $avg: "$durationMs" },
+          errorCount: {
+            $sum: {
+              $cond: [{ $gte: ["$status", 400] }, 1, 0],
+            },
+          },
         },
       },
+      { $project: projectStage },
       { $sort: { requests: -1 } },
     ];
 
@@ -320,7 +341,7 @@ export function createMongoStorage(
   async function getPerformanceStats(
     params: TimeRangeParams
   ): Promise<PerformanceStats[]> {
-    const { from, to, route } = params;
+    const { from, to, route, groupByMethod = false } = params;
 
     const matchStage: Document = {
       timestamp: { $gte: from, $lte: to },
@@ -330,17 +351,41 @@ export function createMongoStorage(
       matchStage["meta.route"] = route;
     }
 
-    const pipeline: Document[] = [
-      { $match: matchStage },
-      {
-        $group: {
-          _id: "$meta.route",
-          avgDurationMs: { $avg: "$durationMs" },
-          durations: { $push: "$durationMs" },
-        },
-      },
-      {
-        $project: {
+    // Group by route only, or by route + method
+    const groupId = groupByMethod
+      ? { route: "$meta.route", method: "$meta.method" }
+      : "$meta.route";
+
+    // First project stage differs based on grouping
+    const firstProjectStage: Document = groupByMethod
+      ? {
+          _id: 0,
+          route: { $ifNull: ["$_id.route", "unknown"] },
+          method: { $ifNull: ["$_id.method", "unknown"] },
+          avgDurationMs: 1,
+          p50DurationMs: {
+            $percentile: {
+              input: "$durations",
+              p: [0.5],
+              method: "approximate",
+            },
+          },
+          p95DurationMs: {
+            $percentile: {
+              input: "$durations",
+              p: [0.95],
+              method: "approximate",
+            },
+          },
+          p99DurationMs: {
+            $percentile: {
+              input: "$durations",
+              p: [0.99],
+              method: "approximate",
+            },
+          },
+        }
+      : {
           _id: 0,
           route: { $ifNull: ["$_id", "unknown"] },
           avgDurationMs: 1,
@@ -365,17 +410,37 @@ export function createMongoStorage(
               method: "approximate",
             },
           },
-        },
-      },
-      {
-        $project: {
+        };
+
+    // Second project stage to extract array elements
+    const secondProjectStage: Document = groupByMethod
+      ? {
+          route: 1,
+          method: 1,
+          avgDurationMs: 1,
+          p50DurationMs: { $arrayElemAt: ["$p50DurationMs", 0] },
+          p95DurationMs: { $arrayElemAt: ["$p95DurationMs", 0] },
+          p99DurationMs: { $arrayElemAt: ["$p99DurationMs", 0] },
+        }
+      : {
           route: 1,
           avgDurationMs: 1,
           p50DurationMs: { $arrayElemAt: ["$p50DurationMs", 0] },
           p95DurationMs: { $arrayElemAt: ["$p95DurationMs", 0] },
           p99DurationMs: { $arrayElemAt: ["$p99DurationMs", 0] },
+        };
+
+    const pipeline: Document[] = [
+      { $match: matchStage },
+      {
+        $group: {
+          _id: groupId,
+          avgDurationMs: { $avg: "$durationMs" },
+          durations: { $push: "$durationMs" },
         },
       },
+      { $project: firstProjectStage },
+      { $project: secondProjectStage },
       { $sort: { avgDurationMs: -1 } },
     ];
 

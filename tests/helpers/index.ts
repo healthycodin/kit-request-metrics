@@ -1,2 +1,6 @@
-export { createMockEvent, type MockEventOptions } from './mock-event.js';
-export { createMockStorage, createMetric, type MockStorage } from './mock-storage.js';
+export { createMockEvent, type MockEventOptions } from "./mock-event.js";
+export {
+  createMetric,
+  createMockStorage,
+  type MockStorage,
+} from "./mock-storage.js";

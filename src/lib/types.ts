@@ -49,6 +49,12 @@ export interface TimeRangeParams {
   to: Date;
   route?: string;
   bucketMinutes?: number;
+  /**
+   * When true, getRouteStats and getPerformanceStats will group by both
+   * route and HTTP method, returning separate entries for GET /api/users
+   * vs POST /api/users
+   */
+  groupByMethod?: boolean;
 }
 
 /**
@@ -61,10 +67,12 @@ export interface TimeBucket {
 }
 
 /**
- * Statistics for a specific route
+ * Statistics for a specific route (and optionally method)
  */
 export interface RouteStats {
   route: string;
+  /** HTTP method (GET, POST, etc.) - only present when groupByMethod is true */
+  method?: string;
   requests: number;
   avgDurationMs: number;
   errorRate: number;
@@ -89,6 +97,8 @@ export interface StatusBreakdown {
  */
 export interface PerformanceStats {
   route: string;
+  /** HTTP method (GET, POST, etc.) - only present when groupByMethod is true */
+  method?: string;
   avgDurationMs: number;
   p50DurationMs: number;
   p95DurationMs: number;
