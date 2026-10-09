@@ -6,7 +6,7 @@
 {`// hooks.server.ts
 import { sequence } from '@sveltejs/kit/hooks';
 import { createTracker, createMongoStorage } from '@healthycodin/kit-request-metrics';
-import { client } from '$lib/server/mongo';
+import { client } from '../lib/server/mongo';
 
 const tracker = createTracker({
   storage: createMongoStorage({
