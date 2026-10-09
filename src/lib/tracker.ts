@@ -1,5 +1,5 @@
-import type { Handle } from "@sveltejs/kit";
 import type {
+  Handle,
   QueryClient,
   RequestMetric,
   StorageAdapter,

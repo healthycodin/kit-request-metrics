@@ -1,5 +1,9 @@
 import type { RequestEvent } from "@sveltejs/kit";
+import type { sequence } from "@sveltejs/kit/hooks";
 import type { MongoClient } from "mongodb";
+
+// Derived from `sequence` because `Handle` is exported from different modules in Kit 2 and Kit 3.
+export type Handle = Parameters<typeof sequence>[0];
 
 /**
  * A single tracked request metric

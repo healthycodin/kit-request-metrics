@@ -1,5 +1,5 @@
-import { createTracker } from "$lib/index.js";
-import type { RequestMetric, StorageAdapter } from "$lib/types.js";
+import { createTracker } from "./lib/index.js";
+import type { RequestMetric, StorageAdapter } from "./lib/types.js";
 import { sequence } from "@sveltejs/kit/hooks";
 
 /**
@@ -7,7 +7,7 @@ import { sequence } from "@sveltejs/kit/hooks";
  *
  * In production, use createMongoStorage instead:
  *
- * import { createMongoStorage } from '$lib/index.js';
+ * import { createMongoStorage } from './lib/index.js';
  * const storage = createMongoStorage({
  *   client: mongoClient,
  *   database: 'myapp',

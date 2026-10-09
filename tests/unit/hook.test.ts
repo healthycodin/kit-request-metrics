@@ -1,4 +1,4 @@
-import type { Handle } from "@sveltejs/kit";
+import type { Handle } from "../../src/lib/types.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createTracker } from "../../src/lib/tracker.js";
 import { createMockEvent, createMockStorage } from "../helpers/index.js";
